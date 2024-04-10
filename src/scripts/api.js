@@ -1,8 +1,93 @@
+const routes = {
+  champions: "http://iggcdevdiosdw24.sa-east-1.elasticbeanstalk.com/champions",
+  ask: "http://iggcdevdiosdw24.sa-east-1.elasticbeanstalk.com/champions/1/ask"
+};
+
+const apiService = {
+  async getChampions(){
+    const route = routes.champions;
+    const response = await fetch(route);
+    return await response.json();
+  },
+  async postAskChampion(id, message){
+    const route = routes.ask.replace("{id}",id);
+    
+    const options = {
+      method: "POST",
+      header: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        question: message
+      })
+    }
+    const response = await fetch(route,options);
+    return await response.json();
+  }
+}
+
+const state = {
+  values: {
+    champions: [],
+  },
+  views: {
+    response: document.querySelector(".text-response"),
+    question: document.getElementById("text-request"),
+    avatar: document.getElementById("avatar"),
+    carousel: document.getElementById("carousel-cards-content"),
+  },
+}
+
+async function main() {
+  await loadChampions();
+  await renderChampions();
+  await loadCarrousel();
+}
+async function loadChampions(){
+  //Call API and load data
+  const data = await apiService.getChampions();
+  state.values.champions = data;
+}
+async function renderChampions(){
+  //Render champions on page
+  const championsData = state.values.champions;
+  const elements = championsData.map((char) => 
+ `<div class="timeline-carousel__item" onclick="onChangeChampionSelected(${char.id}, '${char.imageUrl}')">
+  <div class="timeline-carousel__image">
+    <div class="media-wrapper media-wrapper--overlay"
+      style="background: url('${char.imageUrl}') center center; background-size:cover;">
+    </div>
+  </div>
+  <div class="timeline-carousel__item-inner">
+    <span class="name">${char.name}</span>
+    <span class="role">${char.role}</span>
+    <p>${char.lore}</p>"
+  </div>
+</div>`
+  );
+
+  state.views.carousel.innerHTML = elements.join("");
+}
+
+async function onChangeChampionSelected(id,imageUrl){
+  //1- Trocar imagem de fundo da bolinha
+  state.views.avatar.style.backgroundImage = `url('${imageUrl}')`;
+  //2 - Guardar o id selecionado
+  state.views.avatar.dataset.id = id;
+  //3 - Resetar formulario
+  await resetForm();
+}
+
+async function resetForm(){
+  state.views.question.value = "";
+  state.views.response.textContent = "Pode vir...";
+}
+
 async function loadCarrousel() {
+
   const caroujs = (el) => {
     return $("[data-js=" + el + "]");
   };
-
   caroujs("timeline-carousel").slick({
     infinite: false,
     arrows: true,
@@ -28,4 +113,4 @@ async function loadCarrousel() {
   });
 }
 
-loadCarrousel();
+main();
